@@ -37,7 +37,7 @@ namespace TriInspector.Drawers
         {
             if (Attribute.ButtonSize != 0)
             {
-                return Attribute.ButtonSize;
+                return Attribute.ButtonSize + 8;
             }
 
             return EditorGUIUtility.singleLineHeight;
@@ -56,7 +56,7 @@ namespace TriInspector.Drawers
             {
                 name = property.RawName;
             }
-
+            
             if (GUI.Button(position, name))
             {
                 InvokeButton(property, Array.Empty<object>());
