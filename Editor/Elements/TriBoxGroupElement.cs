@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using TriInspector.Resolvers;
 using TriInspector.Utilities;
@@ -12,10 +14,15 @@ namespace TriInspector.Elements
         private readonly Props _props;
 
         private ValueResolver<string> _headerResolver;
+        private readonly List<TriProperty> _properties = new List<TriProperty>();
+        private readonly Color _headerColor;
+        private readonly Color _titleColor;
+        private bool _expanded;
+        
         [CanBeNull] private TriProperty _firstProperty;
         [CanBeNull] private TriProperty _toggleProperty;
-
-        private bool _expanded;
+        
+        private bool HasVisibleProperties => _properties.Any(t => t.IsVisible);
 
         [Serializable]
         public struct Props
@@ -23,16 +30,30 @@ namespace TriInspector.Elements
             public string title;
             public TitleMode titleMode;
             public bool expandedByDefault;
+            public bool showIfEmpty;
+            public string headerColorHex;
+            public string titleColorHex;
         }
 
         public TriBoxGroupElement(Props props = default)
         {
             _props = props;
             _expanded = _props.expandedByDefault;
+
+            if (!ColorUtility.TryParseHtmlString(_props.headerColorHex, out _headerColor))
+            {
+                _headerColor = Color.clear;
+            }
+            if (!ColorUtility.TryParseHtmlString(_props.titleColorHex, out _titleColor))
+            {
+                _titleColor = Color.clear;
+            }
         }
 
         protected override void AddPropertyChild(TriElement element, TriProperty property)
         {
+            _properties.Add(property);
+            
             _firstProperty = property;
             _headerResolver = ValueResolver.ResolveString(property.Definition, _props.title ?? "");
             
@@ -63,12 +84,17 @@ namespace TriInspector.Elements
                     }
                 }
             }
-            
+
             base.AddPropertyChild(element, property);
         }
 
         protected override float GetHeaderHeight(float width)
         {
+            if (!_props.showIfEmpty && !HasVisibleProperties)
+            {
+                return 0f;
+            }
+            
             if (_props.titleMode == TitleMode.Hidden)
             {
                 return 0f;
@@ -79,6 +105,11 @@ namespace TriInspector.Elements
 
         protected override float GetContentHeight(float width)
         {
+            if (!_props.showIfEmpty && !HasVisibleProperties)
+            {
+                return 0f;
+            }
+            
             if (((_props.titleMode == TitleMode.Toggle && _props.expandedByDefault) || 
                  _props.titleMode == TitleMode.Foldout) && !_expanded)
             {
@@ -90,6 +121,23 @@ namespace TriInspector.Elements
 
         protected override void DrawHeader(Rect position)
         {
+            if (!_props.showIfEmpty && !HasVisibleProperties)
+            {
+                return;
+            }
+
+            var oldBackgroundColor = GUI.backgroundColor;
+            var oldContentColor = GUI.contentColor;
+            
+            if (_headerColor != Color.clear)
+            {
+                GUI.backgroundColor = _headerColor;
+            }
+            if (_titleColor != Color.clear)
+            {
+                GUI.contentColor = _titleColor;
+            }
+            
             TriEditorGUI.DrawBox(position, TriEditorStyles.TabOnlyOne);
 
             var headerLabelRect = new Rect(position)
@@ -131,10 +179,24 @@ namespace TriInspector.Elements
                     EditorGUI.LabelField(headerLabelRect, headerContent);
                     break;
             }
+            
+            if (_headerColor != Color.clear)
+            {
+                GUI.backgroundColor = oldBackgroundColor;
+            }
+            if (_titleColor != Color.clear)
+            {
+                GUI.contentColor = oldContentColor;
+            }
         }
 
         protected override void DrawContent(Rect position)
         {
+            if (!_props.showIfEmpty && !HasVisibleProperties)
+            {
+                return;
+            }
+            
             if (_props.titleMode == TitleMode.Foldout && !_expanded)
             {
                 return;

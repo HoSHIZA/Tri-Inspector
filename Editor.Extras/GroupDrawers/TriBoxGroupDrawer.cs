@@ -16,6 +16,9 @@ namespace TriInspector.GroupDrawers
                 titleMode = attribute.HideTitle
                     ? TriBoxGroupElement.TitleMode.Hidden
                     : TriBoxGroupElement.TitleMode.Normal,
+                showIfEmpty = attribute.ShowIfEmpty,
+                headerColorHex = attribute.HeaderColor,
+                titleColorHex = attribute.TitleColor,
             });
         }
     }
